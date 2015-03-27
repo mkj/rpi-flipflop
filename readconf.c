@@ -14,81 +14,17 @@
 #include "readconf.h"
 #include "flipflop.h"
 
-static void strip_dos_newlines(char *buf)
-{
-	for ( ; *buf; buf++)
-	{
-		if (*buf == 0xd)
-		{
-			*buf = ' ';
-		}
-	}
-}
-
-static int mount_device(const char* device, const char* fstype)
-{
-	char mntpath[100], devpath[100];
-	snprintf(mntpath, sizeof(mntpath), "/tmp/mnt/%s", device);
-	snprintf(devpath, sizeof(devpath), "/%s", device);
-	if (access(mntpath, F_OK) == 0)
-	{
-		return 1;
-	}
-
-	char syspath[200];
-	snprintf(syspath, sizeof(syspath), "/sys/class/block/%s/dev", device);
-	int fd = open(syspath, O_RDONLY);
-	if (fd < 0) {
-		printf("Couldn't open %s. %s\n", syspath, strerror(errno));
-		return 0;
-	}
-	char nodbuf[100];
-	memset(nodbuf, 0x0, sizeof(nodbuf));
-	if (read(fd, nodbuf, sizeof(nodbuf)) < 0)
-	{
-		printf("Couldn't read %s. %s\n", syspath, strerror(errno));
-		close(fd);
-		return 0;
-	}
-	close(fd);
-
-	int maj, min;
-	if (sscanf(nodbuf, "%d:%d", &maj, &min) != 2)
-	{
-		printf("Bad format from %s: '%s'\n", syspath, nodbuf);
-		return 0;
-	}
-
-	if (mknod(devpath, 0700 | S_IFBLK, makedev(maj, min)) != 0)
-	{
-		if (errno != EEXIST)
-		{
-			printf("Couldn't create %s with %d:%d. %s\n",
-				devpath, maj, min, strerror(errno));
-			return 0;
-		}
-	}
-
-	if (mount(devpath, mntpath, fstype, MS_RDONLY, "") != 0)
-	{
-		printf("Failed mounting %s at %s (type %s): %s\n",
-			devpath, mntpath, fstype, strerror(errno));
-		return 0;
-	}
-
-	return 1;
-}
-
 static char* read_conf(const char* conf_name)
 {
+	char *ret = NULL;
 	printf("Reading config %s\n", conf_name);
 	char *work_name = strdup(conf_name);
-	char *tw = work_name;
+	char *free_work_name = work_name;
 	char *device = NULL, *fstype = NULL, *path = NULL;
 
-	device = strsep(&tw, ",");
-	fstype = strsep(&tw, ",");
-	path = strsep(&tw, ",");
+	device = strsep(&work_name, ":");
+	fstype = strsep(&work_name, ":");
+	path = strsep(&work_name, ":");
 
 	if (!(device && fstype && path))
 	{
@@ -98,35 +34,144 @@ static char* read_conf(const char* conf_name)
 	{
 		if (mount_device(device, fstype))
 		{
-			char confpath[421];
+			char confpath[MAX_FLIPFLOP_PATH];
 			snprintf(confpath, sizeof(confpath), "/tmp/mnt/%s/%s", device, path);
-			// XXX here.
-			// remember to null terminate it.
+			int fd = open(confpath, O_RDONLY);
+			if (fd >= 0)
+			{
+				char buffer[1000];
+				memset(buffer, 0x0, sizeof(buffer));
+				int r = read(fd, buffer, sizeof(buffer)-1);
+				if (r > 0)
+				{
+					// Success
+					ret = strdup(buffer);
+					printf("Parsed %s\n", confpath);
+				}
+				else
+				{
+					if (r == 0)
+					{
+						printf("Empty file %s\n", confpath);
+					}
+					else
+					{
+						printf("Problem reading %s: %s\n", confpath, strerror(errno));
+					}
+
+				}
+				close(fd);
+			}
+			else
+			{
+				printf("Couldn't open '%s': %s\n", confpath, strerror(errno));
+
+			}
 		}
 	}
-	free(work_name);
+	free(free_work_name);
+	return ret;
 }
 
 void follow_conf(struct flipflop_config *conf, int safe_mode)
 {
-    // keep following configs. 10 is more than sufficient.
+    // follow config files. 10 is more than sufficient.
     for (int i = 0; i < 10; i++)
     {
-		char *next_conf = strdup(conf->bootmodes[safe_mode].next_settings);
+		char *next_conf = conf->bootmodes[safe_mode].next_settings;
 		char *text = read_conf(next_conf);
-		free(next_conf); 
-		next_conf = NULL;
-		parse_conf(text, conf);
+		if (text)
+		{
+			parse_conf(text, conf);
+		}
 		free(text);
     }
 }
 
-void parse_conf(const char* contents, struct flipflop_config *config)
+void update_bootpart(const char* val, int* part)
+{
+	int v = atoi(val);
+	if (v > 0)
+	{
+		*part = v;
+	}
+	else
+	{
+		printf("Bad boot partition '%s', should be a number >= 1\n", val);
+	}
+}
+
+void update_nextconf(const char* val, char* next_settings)
+{
+	char *work = strdup(val);
+	char *free_work = work;
+	char *dev = strsep(&work, ":");
+	char *fstype = strsep(&work, ":");
+	char *file = strsep(&work, ":");
+
+	if (strcmp(val, "-") == 0)
+	{
+		// blank, ignore it
+	}
+	if (dev && fstype && file && *dev && *fstype && *file)
+	{
+		snprintf(next_settings, MAX_FLIPFLOP_PATH, "%s", val);
+	}
+	else
+	{
+		printf("Bad next_settings '%s': should be for example 'mmcblk0p1:vfat:flipflop.txt'\n",
+			val);
+	}
+	free(free_work);
+}
+
+void parse_conf(const char* contents, struct flipflop_config *conf)
 {
 	char *work = strdup(contents);
-	strip_dos_newlines(work);
+	char *free_work = work;
 
-	// strsep on newlines. Ignore # comment
+	// ignore dos newlines
+	for (char *line = work; line; line = strsep(&work, "\n\r"))
+	{
+		if (*line == '\0' || *line == '#' || *line == '!')
+		{
+			// empty line, dos newline, or comment
+			continue;
+		}
 
-	free(work);
+		char *workline = strdup(line);
+		char *free_workline = workline;
+
+		char* key = strsep(&workline, " ");
+		char* value = strsep(&workline, " ");
+
+		if (!(key && value))
+		{
+			printf("Bad config line '%s'\n", line);
+		}
+
+		if (strcmp(key, "normal_bootpart") == 0)
+		{
+			update_bootpart(value, &conf->bootmodes[0].boot_partition);
+		} 
+		else if (strcmp(key, "safe_bootpart") == 0)
+		{
+			update_bootpart(value, &conf->bootmodes[1].boot_partition);
+		} 
+		else if (strcmp(key, "normal_nextconf") == 0)
+		{
+			update_nextconf(value, conf->bootmodes[0].next_settings);
+		} 
+		else if (strcmp(key, "safe_nextconf") == 0)
+		{
+			update_nextconf(value, conf->bootmodes[1].next_settings);
+		} 
+		else
+		{
+			printf("Unknown config parameter '%s'\n", line);
+		}
+		free(free_workline);
+	}
+
+	free(free_work);
 }

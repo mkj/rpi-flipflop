@@ -10,9 +10,19 @@ flipflop.img: flipflop
 	dd if=/dev/zero bs=1M count=1 of=$@
 	mkfs.vfat $@
 	mcopy -i $@ flipflop ::/init.exe
+	mcopy -i $@ flipflop.txt ::/flipflop.txt
 
 flipflop: flipflop.o readconf.o
 
 try: 
 	QEMU_AUDIO_DRV=none qemu-system-arm -kernel ~/mnt/drpi/kernel-qemu -cpu arm1176 -m 256 -M versatilepb -no-reboot -serial stdio -append " console=ttyAMA0 root=/dev/sda panic=1 ro init=/init.exe" -hda flipflop.img  -nographic
+
+bb.img:
+	dd if=/dev/zero bs=3M count=1 of=$@
+	mkfs.vfat $@
+	mcopy -i $@ ~/mnt/drpi/busybox.exe ::/busybox.exe
+
+
+bb: 
+	QEMU_AUDIO_DRV=none qemu-system-arm -kernel ~/mnt/drpi/kernel-qemu -cpu arm1176 -m 256 -M versatilepb -no-reboot -serial stdio -append " console=ttyAMA0 root=/dev/sda panic=1 ro init=/busybox.exe" -hda flipflop.img  -nographic
 
