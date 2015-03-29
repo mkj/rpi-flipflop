@@ -23,6 +23,7 @@ Matt Johnston <matt@ucc.asn.au>
 
 - Build flipflop by running `make`. I've been cross-compiling from a x86 Ubuntu box,
   I assume building on the Raspberry Pi itself should work too. The output is `flipflop.initramfs`
+  A prebuilt binary is available at https://matt.ucc.asn.au/rpi-flipflop/flipflop.initramfs
 
 - Create a SD card with a few partitions
  - mmcblk0p1 - vfat, perhaps 40MB. I'll call this the "first boot partition", it has 
