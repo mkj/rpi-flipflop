@@ -4,10 +4,10 @@ This is a replacement for the old kernel\_emergency.img that old Raspberry Pi
 firmwares used (http://elinux.org/RPI_safe_mode)
 
 It lets you toggle booting two different partitions (kernels/distros/images)
-depending on the state of GPIO pin 5.
+depending on the state of GPIO pin 3.
 
 You specify a "normal partition" and a "safe partition". Usually the Raspberry Pi
-will boot the normal partion. If GPIO pin 5 (pin 3 on the physical header) is
+will boot the normal partion. If GPIO pin 3 (pin 5 on the physical header) is
 held to ground it will boot the safe partition. 
 
 I am using this in conjunction with a hardware watchdog that toggles the "safe boot"
@@ -45,28 +45,31 @@ bootcode.bin            start_x.elf         flipflop.txt
 ```
 
 - Copy `flipflop.initramfs` to the first boot partition. Edit config.txt and add a line
-  `initramfs flipflop.initramfs followkernel`
+  ```
+initramfs flipflop.initramfs followkernel
+```
 
 - Edit flipflop.txt to customise the config. An example to boot mmcblk0p5 in normal mode
   or mmcblk0p8 in safe mode
-```
+  ```
 normal_bootpart 5
 safe_bootpart 8
 ```
   You can also point it at further config files to parse - this is useful if you want
   to avoid ever editing your mmcblk0p1 for safety.
-```
+  ```
 normal_nextconf mmcblk0p2:vfat:nextconf.txt
 safe_nextconf mmcblk0p2:vfat:flipflop.txt
 ```
-  The default configuration is hardcoded near the top of (flipflop.c)
+  The default configuration is hardcoded near the top of [flipflop.c](flipflop.c)
 
 - Install normal distros to your normal and safe partitions and it should work.
 
 ## How it works
 
 Flipflop boots a Linux kernel that runs flipflop as /init in an initramfs.
-It looks at the GPIO pins then sets the Raspberry Pi's reboot parameter as appropriate. 
+It looks at the GPIO pins then sets the Raspberry Pi's reboot parameter 
+`/sys/module/bcm2708/parameters/reboot_part` as appropriate. 
 Then it reboots and the device boots whichever partition you chose. It adds a few seconds
 to the boot time.
 
