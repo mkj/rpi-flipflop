@@ -1,7 +1,7 @@
 # Raspberry Pi Flipflop
 
 This is a replacement for the old kernel\_emergency.img that old Raspberry Pi 
-firmwares used (http://elinux.org/RPI_safe_mode)
+firmwares used, see http://elinux.org/RPI_safe_mode .
 
 It lets you toggle booting two different partitions (kernels/distros/images)
 depending on the state of GPIO pin 3.
@@ -11,7 +11,7 @@ will boot the normal partion. If GPIO pin 3 (pin 5 on the physical header) is
 held to ground it will boot the safe partition. 
 
 I am using this in conjunction with a hardware watchdog that toggles the "safe boot"
-GPIO pin every few hours (https://github.com/mkj/pihelp). That ensures that I 
+GPIO pin every few hours https://github.com/mkj/pihelp . That ensures that I 
 can access the device even if I break one of the partitions - I have a fallback
 rescue partition.
 
@@ -26,10 +26,11 @@ Matt Johnston <matt@ucc.asn.au>
  - mmcblk0p1 - vfat, perhaps 40MB. I'll call this the "first boot partition", it has 
    a Linux kernel and the flipflop initramfs (and other boot files).
 
- - "normal boot" partition, has all the boot files
- - "safe" partition, also has all the boot files. It's cmdline.txt probably points
-   at a different root partition to normal.
- - Other root partitions for each boot distro.
+ - "normal boot" partition, has all the boot files for the normal distro.
+ - "safe" partition, also has all the boot files but for the safe distro. Its 
+   cmdline.txt probably points at a different root partition to normal.
+ - The root partitions for each of the normal/safe partitions
+ - Anything else (including config file partition, see below)
 
 - Set up a vfat mmcblk0p1 partition with the contents of 
   https://github.com/raspberrypi/firmware/tree/master/boot 
