@@ -113,7 +113,7 @@ void update_nextconf(const char* val, char* next_settings)
 	{
 		// blank, ignore it
 	}
-	if (dev && fstype && file && *dev && *fstype && *file)
+	else if (dev && fstype && file && *dev && *fstype && *file)
 	{
 		snprintf(next_settings, MAX_FLIPFLOP_PATH, "%s", val);
 	}

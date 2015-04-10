@@ -21,10 +21,9 @@ static const int FLIPFLOP_DEFAULT_NORMAL = 5;
 /* Config used by default */
 static const char *default_config =
 "normal_bootpart 5\n"
-//"normal_nextconf mmcblk0p1:vfat:flipflop.txt\n"
-"normal_nextconf sda:vfat:flipflop.txt\n"
-"safe_bootpart 2\n"
-"safe_nextconf -\n";
+"normal_nextconf mmcblk0p2:vfat:flipflop.txt\n"
+"safe_bootpart 6\n"
+"safe_nextconf mmcblk0p2:vfat:flipflop.txt\n";
 
 static const int SAFEMODE_GPIO = 3;
 
@@ -56,16 +55,11 @@ void failed_ensure(const char *desc, int line)
 
 void setup_fs()
 {
-    //ENSURE(umount2("/", MNT_DETACH) == 0, "umount /");
-    ENSURE(mount("tmp2", "/", "tmpfs", 0, "") == 0, "mount / tmpfs");
-    ENSURE(mount("tmp2", "/", "tmpfs", MS_REMOUNT, "") == 0, "mount / tmpfs rw");
-    ENSURE(chdir("/") == 0, "chdir /");
-    ENSURE(chmod("/", 0700) == 0, "chmod /");
     ENSURE(mkdir("/tmp", 0700) == 0, "mkdir /tmp");
     ENSURE(mkdir("/tmp/mnt", 0700) == 0, "mkdir /tmp/mnt");
     ENSURE(mkdir("/sys", 0700) == 0, "mkdir /sys");
     ENSURE(mkdir("/proc", 0700) == 0, "mkdir /proc");
-    ENSURE(mkdir("/dev", 0777) == 0, "mkdir /dev");
+    //ENSURE(mkdir("/dev", 0777) == 0, "mkdir /dev");
 
     ENSURE(mount("sysfs", "/sys", "sysfs", 0, "") == 0, "mount /sys");
     ENSURE(mount("proc", "/proc", "proc", 0, "") == 0, "mount /proc");
@@ -104,6 +98,8 @@ static int get_gpio_safemode()
     ENSURE(read(fd, buf, 1) == 1, "read gpio pin");
     ENSURE(close(fd) == 0, "close gpio pin");
     fd = -1;
+
+    printf("gpio is '%hhx'\n", buf[0]);
 
     if (buf[0] == '0')
     {
@@ -176,12 +172,14 @@ set_boot_partition(int part)
 
 int main(int argc, char ** argv)
 {
-    printf("Welcome to flipflop Linux.\n");
+    printf("\nWelcome to flipflop Linux.\n\n");
+
+    sleep(1);
+
+    setup_fs();
 
     /* If flipflop fails then try booting "normally" */
     set_boot_partition(FLIPFLOP_DEFAULT_NORMAL);
-
-    setup_fs();
 
     int safe_mode = get_gpio_safemode();
 
@@ -219,48 +217,6 @@ int mount_device(const char* device, const char* fstype)
     if (access(mntpath, F_OK) == 0)
     {
         return 1;
-    }
-
-    char syspath[200];
-    snprintf(syspath, sizeof(syspath), "/sys/class/block/%s/dev", device);
-    int fd = open(syspath, O_RDONLY);
-    if (fd < 0) {
-        printf("Couldn't open %s : %s\n", syspath, strerror(errno));
-        return 0;
-    }
-    char nodbuf[100];
-    memset(nodbuf, 0x0, sizeof(nodbuf));
-    if (read(fd, nodbuf, sizeof(nodbuf)) < 0)
-    {
-        printf("Couldn't read %s : %s\n", syspath, strerror(errno));
-        close(fd);
-        return 0;
-    }
-    close(fd);
-
-    int maj, min;
-    if (sscanf(nodbuf, "%d:%d", &maj, &min) != 2)
-    {
-        printf("Bad format from %s: '%s'\n", syspath, nodbuf);
-        return 0;
-    }
-
-    int x = open("/dev/thing", O_WRONLY|O_CREAT, 0666);
-    printf("x %d err %s\n", x, strerror(errno));
-    if (mknod(devpath, 0666 | S_IFBLK, makedev(maj, min)) != 0)
-    {
-        if (errno != EEXIST)
-        {
-            printf("Couldn't create %s with %d:%d. %s\n",
-                devpath, maj, min, strerror(errno));
-            return 0;
-        }
-    }
-
-    if (mkdir(mntpath, 0777) != 0)
-    {
-        printf("Failed mkdir '%s'\n", mntpath);
-        return 0;
     }
 
     if (mount(devpath, mntpath, fstype, MS_RDONLY, "") != 0)
