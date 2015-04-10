@@ -26,15 +26,16 @@ Matt Johnston <matt@ucc.asn.au>
   build flipflop by running `make`. I've been cross-compiling from a 
   x86 Ubuntu box, I assume building on the Raspberry Pi itself should work too. 
 
-- Create a SD card with a few partitions
- - mmcblk0p1 - vfat, perhaps 40MB. I'll call this the "first boot partition", it has 
+- Partition and set up a SD card
+ - mmcblk0p1 - vfat, perhaps 40MB. This is only used by flipflop. 
+   I'll call this the "first boot partition", it has 
    a Linux kernel and the flipflop initramfs (and other boot files).
 
- - "normal boot" partition, has all the boot files for the normal distro.
+ - "normal boot" partition, has all the boot files for the normal distro (eg /boot from raspbian)
  - "safe" partition, also has all the boot files but for the safe distro. Its 
    cmdline.txt probably points at a different root partition to normal.
  - The root partitions for each of the normal/safe partitions
- - Anything else (including config file partition, see below)
+ - Anything else (perhaps config file partition, see below)
 
 - Set up a vfat mmcblk0p1 partition with the contents of 
   https://github.com/raspberrypi/firmware/tree/master/boot 
@@ -54,21 +55,22 @@ bootcode.bin            start_x.elf         flipflop.txt
 initramfs flipflop.initramfs followkernel
 ```
 
-- Edit flipflop.txt to customise the config. An example to boot mmcblk0p5 in normal mode
-  or mmcblk0p8 in safe mode
+- Create a file `flipflop.txt` on the first boot partition to customise the config. 
+  An example to boot mmcblk0p5 in normal mode or mmcblk0p8 in safe mode
   ```
 normal_bootpart 5
 safe_bootpart 8
 ```
   You can also point it at further config files to parse - this is useful if you want
-  to avoid ever editing your mmcblk0p1 for safety.
+  an editable config file on a different partition to avoid ever editing your
+  mmcblk0p1 for safety.
   ```
 normal_nextconf mmcblk0p2:vfat:nextconf.txt
 safe_nextconf mmcblk0p2:vfat:flipflop.txt
 ```
   The default configuration is hardcoded near the top of [flipflop.c](flipflop.c)
 
-- Install normal distros to your normal and safe partitions and it should work.
+- Install normal distros to your normal and safe partitions. It should now work.
 
 ## How it works
 
@@ -80,3 +82,4 @@ to the boot time.
 
 This works the same as [NOOBS](https://github.com/raspberrypi/noobs) - it uses the same
 parameter to automatically boot the installed distro if the "safe mode" pin isn't held. 
+The "separate config partition" idea came from NOOBS too.

@@ -1,0 +1,8 @@
+# in normal mode parse this config file:
+normal_nextconf mmcblk0p2:vfat:nextconf.txt
+# and set bootpart to mmcblk0p5 (in case nextconf.txt is missing)
+normal_bootpart 5
+# safe mode uses mmcblk0p8
+safe_bootpart 8
+# and the same config file
+safe_nextconf mmcblk0p2:vfat:flipflop.txt
