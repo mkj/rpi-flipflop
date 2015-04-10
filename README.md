@@ -15,6 +15,8 @@ GPIO pin every few hours https://github.com/mkj/pihelp . That ensures that I
 can access the device even if I break one of the partitions - I have a fallback
 rescue partition.
 
+At the time of writing (April 2015) this has been tested on a 512MB Raspberry Pi B (not +) with Linux 3.18.7
+
 Matt Johnston <matt@ucc.asn.au>
 
 ## Installing
