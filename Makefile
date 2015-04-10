@@ -1,4 +1,4 @@
-CONFIG_CROSS_COMPILE=/home/matt/rpibin/arm-bcm2708-linux-gnueabi-
+CONFIG_CROSS_COMPILE=arm-bcm2708-linux-gnueabi-
 CC=$(CONFIG_CROSS_COMPILE)cc
 CFLAGS=-Wall -Os  -std=c99 -ffunction-sections -fdata-sections
 LD=$(CONFIG_CROSS_COMPILE)ld

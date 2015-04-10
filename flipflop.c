@@ -21,9 +21,9 @@ static const int FLIPFLOP_DEFAULT_NORMAL = 5;
 /* Config used by default */
 static const char *default_config =
 "normal_bootpart 5\n"
-"normal_nextconf mmcblk0p2:vfat:flipflop.txt\n"
+"normal_nextconf mmcblk0p1:vfat:flipflop.txt\n"
 "safe_bootpart 6\n"
-"safe_nextconf mmcblk0p2:vfat:flipflop.txt\n";
+"safe_nextconf mmcblk0p1:vfat:flipflop.txt\n";
 
 static const int SAFEMODE_GPIO = 3;
 
