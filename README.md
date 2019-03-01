@@ -40,7 +40,7 @@ Matt Johnston <matt@ucc.asn.au>
 - Set up a vfat mmcblk0p1 partition with the contents of 
   https://github.com/raspberrypi/firmware/tree/master/boot 
   or /boot from recent Raspbian. 
-  ```
+```
 COPYING.linux           cmdline.txt         issue.txt 
 LICENCE.broadcom        config.txt          kernel.img 
 LICENSE.oracle          fixup.dat           kernel7.img 
@@ -51,27 +51,27 @@ bootcode.bin            start_x.elf         flipflop.txt
 ```
 
 - Copy `flipflop.initramfs` to the first boot partition. Edit config.txt and add a line
-  ```
+```
 initramfs flipflop.initramfs followkernel
 ```
 
 - Create a file `flipflop.txt` on the first boot partition to customise the config. 
   An example to boot mmcblk0p5 in normal mode or mmcblk0p8 in safe mode
-  ```
+```
 normal_bootpart 5
 safe_bootpart 8
 ```
   You can also point it at further config files to parse - this is useful if you want
   an editable config file on a different partition to avoid ever editing your
   mmcblk0p1 for safety.
-  ```
+```
 normal_nextconf mmcblk0p2:vfat:nextconf.txt
 safe_nextconf mmcblk0p2:vfat:flipflop.txt
 ```
   The default configuration is hardcoded near the top of [flipflop.c](flipflop.c)
 
 - Install normal distros to your normal and safe partitions. It should now work.
-
+```
 ## How it works
 
 Flipflop boots a Linux kernel that runs flipflop as /init in an initramfs.
