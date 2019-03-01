@@ -71,7 +71,7 @@ safe_nextconf mmcblk0p2:vfat:flipflop.txt
   The default configuration is hardcoded near the top of [flipflop.c](flipflop.c)
 
 - Install normal distros to your normal and safe partitions. It should now work.
-```
+
 ## How it works
 
 Flipflop boots a Linux kernel that runs flipflop as /init in an initramfs.
